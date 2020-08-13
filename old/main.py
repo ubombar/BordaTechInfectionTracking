@@ -40,7 +40,8 @@ def get_data():
     ] 
 
     INFO_DATA = [
-        {'Id': 'dev01', 'Covid': 'P', 'Date': '2020-07-31 10:00:00'}
+        {'Id': 'dev01', 'Covid': 'P', 'Date': '2020-07-31 10:00:00'},
+        {'Id': 'dev02', 'Covid': 'N', 'Date': '2020-08-02 10:00:00'}
     ] 
 
     DEV_DATA = [

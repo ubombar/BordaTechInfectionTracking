@@ -32,6 +32,8 @@ def stack_traverse(node : TreeNode, cgraph : BordaGraph, dev_name_dict, level=1)
         for date in date_list:
             if date < node.date: continue
 
+            
+
             temp = TreeNode(contact_devid, dev_name_dict[contact_devid], date, level)
             temp.attach(node)
 
@@ -53,24 +55,39 @@ def traverse_tree_and_delete(node, r_devid):
     for child_node in node.children:
         traverse_tree_and_delete(child_node, r_devid)
 
+def prune_function(node, treenodeDICT, visited, level=1):
+    if node is None: return
+
+    if node.devid not in visited and treenodeDICT[node.devid] == level:
+        visited.add(node.devid)
+    else:
+        parent_tmp = node.parent
+        node.detach()
+
+        for child_node in node.children:
+            parent_tmp.attach(child_node)
+
+        node = parent_tmp
+
+    for child_node in node.children:
+        prune_function(child_node, treenodeDICT, visited, level + 1)
+
 def process_record(cgraph, root, r_date, r_covid, r_devid, dev_name_dict):
     # CASE 1: ONLY ROOT EXISTS & COVID POSITIVE
     if root.is_leaf() and r_covid:
         treenode = TreeNode(r_devid, dev_name_dict[r_devid], r_date)
         treenode.attach(root)
 
-        print(treenode.level)
-
         stack_traverse(treenode, cgraph, dev_name_dict)
+
+        visited = set()
+        # prune_function(treenode, TreeNode.DICT, visited)
 
     # CASE 2: TREE EXISTS & COVID POSITIVE
 
     # CASE 3: TREE EXISTS & COVID NEGATIVE
     if not root.is_leaf() and not r_covid:
         traverse_tree_and_delete(root, r_devid)
-
-
-
 
 
 def iterate_for_data(cgraph, root, record, history, i, info_data, dev_name_dict):
