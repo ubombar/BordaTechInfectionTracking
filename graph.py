@@ -40,14 +40,14 @@ class BordaGraph(): # undirected graph
             self.graph[name] = []
 
 class TreeNode():
-    DICT = dict()
+    DICT = collections.defaultdict(lambda: 0)
 
-    def __init__(self, devid, name, date, level=None, parent=None):
+    def __init__(self, devid, name, date, level=0, parent=None):
         self.parent = parent
         self.devid = devid
         self.date = date
         self.name = name
-        self.level = level
+        self.__level = level
         self.__children = []
     
     def add_child(self, node):
@@ -82,16 +82,15 @@ class TreeNode():
     
     @level.setter
     def level(self, level):
-        old_min_level = TreeNode.DICT.get(self.devid)
+        old_level = TreeNode.DICT[self.devid]
 
-        if level is None:
-            self.__level = None
-        elif level is not None and old_min_level is None:
-            self.__level = level
-            TreeNode.DICT[self.devid] = level
-        else:
-            TreeNode.DICT[self.devid] = min(level, old_min_level)
-            self.__level = min(level, old_min_level)
+        if level != 0:
+            if old_level == 0:
+                TreeNode.DICT[self.devid] = level
+            else:
+                TreeNode.DICT[self.devid] = min(level, old_level)
+
+        self.__level = level
 
     @property
     def children(self):

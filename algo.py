@@ -59,6 +59,8 @@ def process_record(cgraph, root, r_date, r_covid, r_devid, dev_name_dict):
         treenode = TreeNode(r_devid, dev_name_dict[r_devid], r_date)
         treenode.attach(root)
 
+        print(treenode.level)
+
         stack_traverse(treenode, cgraph, dev_name_dict)
 
     # CASE 2: TREE EXISTS & COVID POSITIVE
