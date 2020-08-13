@@ -1,7 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from new_graph import BordaGraph, TreeNode
 
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+INC_PERIOD = timedelta(days=14)
 
 DATABASE_CONTACTS = []
 DATABASE_INFO = []
@@ -17,7 +19,6 @@ def trigger_alter_tree(devid1, devid2, start, end, rssi):
 
 def trigger_alter_graph(devid1, devid2, start, end, rssi):
     GRAPH.add_edge(devid1, devid2, (start, end, rssi))
-
 
 # ALGO FUNCTIONS
 def generate_tree(node:TreeNode):
