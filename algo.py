@@ -18,7 +18,7 @@ def algo_previous(node:TreeNode):
         trav = trav.parent
     return array - {None} # WELLDONE!
 
-def stack_traverse(node : TreeNode, cgraph : BordaGraph, level=1):
+def stack_traverse(node : TreeNode, cgraph : BordaGraph, dev_name_dict, level=1):
     if node is None: return
 
     visited = algo_previous(node)
@@ -32,11 +32,11 @@ def stack_traverse(node : TreeNode, cgraph : BordaGraph, level=1):
         for date in date_list:
             if date < node.date: continue
 
-            temp = TreeNode(contact_devid, None, date, level)
+            temp = TreeNode(contact_devid, dev_name_dict[contact_devid], date, level)
             temp.attach(node)
 
     for child_node in node.children:
-        stack_traverse(child_node, cgraph, level + 1)
+        stack_traverse(child_node, cgraph, dev_name_dict, level + 1)
 
 def traverse_tree_and_delete(node, r_devid):
     if node is None: return 
@@ -53,13 +53,13 @@ def traverse_tree_and_delete(node, r_devid):
     for child_node in node.children:
         traverse_tree_and_delete(child_node, r_devid)
 
-def process_record(cgraph, root, r_date, r_covid, r_devid):
+def process_record(cgraph, root, r_date, r_covid, r_devid, dev_name_dict):
     # CASE 1: ONLY ROOT EXISTS & COVID POSITIVE
     if root.is_leaf() and r_covid:
-        treenode = TreeNode(r_devid, None, r_date)
+        treenode = TreeNode(r_devid, dev_name_dict[r_devid], r_date)
         treenode.attach(root)
 
-        stack_traverse(treenode, cgraph)
+        stack_traverse(treenode, cgraph, dev_name_dict)
 
     # CASE 2: TREE EXISTS & COVID POSITIVE
 
@@ -71,7 +71,7 @@ def process_record(cgraph, root, r_date, r_covid, r_devid):
 
 
 
-def iterate_for_data(cgraph, root, record, history, i, info_data):
+def iterate_for_data(cgraph, root, record, history, i, info_data, dev_name_dict):
     '''
         cgraph      : connection graph
         root        : root tree node
@@ -82,6 +82,6 @@ def iterate_for_data(cgraph, root, record, history, i, info_data):
     '''
     date, covid, devid = record
     
-    process_record(cgraph, root, date, covid, devid)
+    process_record(cgraph, root, date, covid, devid, dev_name_dict)
     
-# DATE MEGING
+# DATE MERGING

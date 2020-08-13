@@ -89,13 +89,14 @@ def lambda_function(event, context):
     
     ### 2 Infection detected! create a infection tree! ###
     root = algo.PATIENT_ZERO
+    dev_name_dict = {x["Id"]: x["Name"] for x in DEV_DATA}
 
     for i, record in enumerate(INFO_DATA):
         date = datetime.datetime.strptime(record["Date"], algo.DTFORMAT)
         covid = record["Covid"].upper() == "P"
         devid = record["Id"]
 
-        algo.iterate_for_data(interactions, root, (date, covid, devid), history, i, INFO_DATA)
+        algo.iterate_for_data(interactions, root, (date, covid, devid), history, i, INFO_DATA, dev_name_dict)
 
     return json.dumps({"levels": graph.TreeNode.DICT, "tree": root.to()})
 
