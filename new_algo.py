@@ -1,10 +1,8 @@
 from datetime import datetime, timedelta
 from new_graph import BordaGraph, TreeNode
 import collections
+from new_const import *
 
-TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-
-INC_PERIOD = timedelta(days=14)
 
 DATABASE_CONTACTS = []
 DATABASE_INFO = []

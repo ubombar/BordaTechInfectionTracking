@@ -1,10 +1,8 @@
 import collections
 import datetime
 import math
-
-'''
-    author Bombique, all datatypes are for general use!
-'''
+from datetime import datetime
+from new_const import *
 
 class BordaGraph(): # undirected graph
     def __init__(self):
@@ -38,8 +36,6 @@ class BordaGraph(): # undirected graph
     def add_vertex(self, name):
         if name not in self.graph:
             self.graph[name] = []
-
-
 
 class TreeNode():
     DICT = collections.defaultdict(lambda: 0)
@@ -117,50 +113,56 @@ class TreeNode():
             "children": [child.to() for child in self.__children]
         }
 
+class TimePeriod():
+    # I: Infected, H: Healthy, U: Unknown
+    def __init__(self):
+        # {devid:[(date, status)]}
+        self.periods = collections.defaultdict(lambda: [(datetime(2019, 1, 1), "U")])
 
+    def add_record(self, devid, date, covid):
+        i = len(self.periods[devid]) - 1
 
-'''
-class TreeNode():
-    def __init__(self, devid, name, date, parent=None):
-        self.parent = parent
-        self.devid = devid
-        self.date = date
-        self.name = name
-        self.__children = []
-    
-    def add_child(self, node):
-        self.__children.append(node)
-        node.parent = self
+        l_date, l_status = self.periods[devid][i]
 
-    def remove_child(self, node):
-        node.parent = None
-        self.__children.remove(node)
+        if covid:
+            if l_status == "H":
+                print("If you see this there is a problem...")
+            elif l_status == "U":
+                early_date = date - INC_PERIOD
 
-    def detach(self):
-        self.parent.children.remove(self)
-        self.parent = None
+                if l_date < early_date:
+                    self.periods[devid][i] = (l_date, "H")
+                    self.periods[devid].append((early_date, "I"))
+                else:
+                    self.periods[devid][i] = (l_date, "I")
 
-    def attach(self, parent):
-        self.parent = parent
-        self.parent.add_child(self)
+            elif l_status == "I":
+                pass 
+        else:
+            if l_status == "H":
+                pass
+            elif l_status == "U":
+                self.periods[devid][i] = (l_date, "H")
+                self.periods[devid].append((date, "U"))
+            elif l_status == "I":
+                # self.periods[devid][i] = (l_date, "I")
+                self.periods[devid].append((date, "U"))
 
-    def is_leaf(self):
-        return len(self.children) == 0
+    def lookup(self, devid, date):
+        return # I, H, U
 
-    def is_root(self):
-        return self.parent is None
+    def to_str(self, devid):
+        string = ""
+        for date, status in self.periods[devid]:
+            s = datetime.strftime(date, '%Y-%m-%d')
+            string += f"'{s}:{status}'  "
+        return string
 
-    @property
-    def children(self):
-        return self.__children
-    
-    def to(self):
-        return {
-            # "pdevid": None if self.parent is None else self.parent.devid,
-            "devid": self.devid,
-            # "level": self.level,
-            # "name": self.name,
-            # "date": str(self.date),
-            "children": [child.to() for child in self.__children]
-        }
-'''
+dat = TimePeriod()
+
+dat.add_record("dev01", datetime(2020, 8, 1), False)
+dat.add_record("dev01", datetime(2020, 8, 2), False)
+dat.add_record("dev01", datetime(2020, 8, 20), True)
+
+print(dat.to_str("dev01"))
+

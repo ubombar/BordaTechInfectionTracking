@@ -1,5 +1,5 @@
 #!/home/ubombar/torch/bin/python
-
+from new_const import *
 from new_algo import *
 import json
 
