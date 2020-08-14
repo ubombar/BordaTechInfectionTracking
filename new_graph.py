@@ -39,6 +39,86 @@ class BordaGraph(): # undirected graph
         if name not in self.graph:
             self.graph[name] = []
 
+
+
+class TreeNode():
+    DICT = collections.defaultdict(lambda: 0)
+
+    def __init__(self, devid, name, date, level=0, parent=None):
+        self.parent = None
+
+        if parent is not None:
+            self.attach(parent)
+
+        self.devid = devid
+        self.date = date
+        self.name = name
+        self.__level = level
+        self.__children = []
+
+    def rm_all(self):
+        for child_node in self.__children:
+            child_node.detach()
+        self.__children.clear()
+    
+    def add_child(self, node):
+        self.__children.append(node)
+        node.parent = self
+
+    def rm_child(self, node):
+        node.parent = None
+        self.__children.remove(node)
+
+    def detach(self):
+        ''' Detaches itself from parent node '''
+        self.parent.children.remove(self)
+        self.parent = None
+        self.level = 0
+
+    def attach(self, parent):
+        ''' Attaches itself to the parent node '''
+        self.parent = parent
+        self.parent.add_child(self)
+        self.level = self.parent.level + 1
+
+    def is_leaf(self):
+        return len(self.children) == 0
+
+    def is_root(self):
+        return self.parent is None
+    
+    @property
+    def level(self):
+        return self.__level
+    
+    @level.setter
+    def level(self, level):
+        old_level = TreeNode.DICT[self.devid]
+
+        if level != 0:
+            if old_level == 0:
+                TreeNode.DICT[self.devid] = level
+            else:
+                TreeNode.DICT[self.devid] = min(level, old_level)
+
+        self.__level = level
+
+    @property
+    def children(self):
+        return self.__children
+    
+    def to(self):
+        return {
+            # "pdevid": None if self.parent is None else self.parent.devid,
+            "devid": self.devid,
+            "level": self.level,
+            # "name": self.name,
+            "date": str(self.date),
+            "children": [child.to() for child in self.__children]
+        }
+
+
+'''
 class TreeNode():
     def __init__(self, devid, name, date, parent=None):
         self.parent = parent
@@ -56,12 +136,10 @@ class TreeNode():
         self.__children.remove(node)
 
     def detach(self):
-        ''' Detaches itself from parent node '''
         self.parent.children.remove(self)
         self.parent = None
 
     def attach(self, parent):
-        ''' Attaches itself to the parent node '''
         self.parent = parent
         self.parent.add_child(self)
 
@@ -84,3 +162,4 @@ class TreeNode():
             # "date": str(self.date),
             "children": [child.to() for child in self.__children]
         }
+'''
