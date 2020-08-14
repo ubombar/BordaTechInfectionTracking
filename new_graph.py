@@ -114,7 +114,6 @@ class TreeNode():
             "children": [child.to() for child in self.__children]
         }
 
-
 class TimeLine():
     def __init__(self):
         self.timeline = collections.defaultdict(lambda: [(datetime(2019, 1, 1), "U")])

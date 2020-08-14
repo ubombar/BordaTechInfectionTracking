@@ -26,19 +26,26 @@ def register_info(devid:str, result:bool, date:datetime):
     # trigger if there is some actively infected, get the connection data
     # starting from the earliest date that is greater that the earliest 
     # danger zone date? But this might cause other problems!
-    if result:
-        min_danger_date = date - INC_PERIOD
-        trigger_alter_graph('root', devid, min_danger_date, 0)
-        trigger_alter_tree('root', devid, min_danger_date, 0)
+    min_danger_date = date - INC_PERIOD
+
+    trigger_alter_timeline(devid, date, result)
+    trigger_alter_graph('root', devid, min_danger_date, 0)
+    trigger_alter_tree('root', devid, min_danger_date, 0)
 
 
 if __name__ == "__main__": # THOSE ALL ARE LAMBDA CALLS
-    register_contactv3('dev01', 'dev04', datetime(2020, 1, 2), 50)
-    register_contactv3('dev02', 'dev04', datetime(2020, 1, 6), 50)
-    register_contactv3('dev03', 'dev04', datetime(2020, 1, 7), 50)
-    register_contactv3('dev05', 'dev04', datetime(2020, 1, 2), 50)
+    register_contactv3('dev01', 'dev04', datetime(2020, 6, 2), 50)
+    register_contactv3('dev02', 'dev04', datetime(2020, 6, 6), 50)
+    register_contactv3('dev03', 'dev04', datetime(2020, 6, 7), 50)
+    register_contactv3('dev05', 'dev04', datetime(2020, 6, 2), 50)
 
     register_info('dev01', True, datetime(2020, 1, 16))
     register_info('dev02', True, datetime(2020, 1, 19))
 
-    print(json.dumps(TREE_ROOT.to()))
+    register_info('dev01', False, datetime(2020, 1, 20))
+    register_info('dev02', False, datetime(2020, 1, 20))
+
+    print(json.dumps({
+        "Timeline": TIMELINE.to(),
+        "Tree": TREE_ROOT.to()
+    }))
