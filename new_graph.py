@@ -3,6 +3,7 @@ import datetime
 import math
 from datetime import datetime
 from new_const import *
+import json
 
 class BordaGraph(): # undirected graph
     def __init__(self):
@@ -113,56 +114,58 @@ class TreeNode():
             "children": [child.to() for child in self.__children]
         }
 
-class TimePeriod():
-    # I: Infected, H: Healthy, U: Unknown
+
+class TimeLine():
     def __init__(self):
-        # {devid:[(date, status)]}
-        self.periods = collections.defaultdict(lambda: [(datetime(2019, 1, 1), "U")])
+        self.timeline = collections.defaultdict(lambda: [(datetime(2019, 1, 1), "U")])
 
-    def add_record(self, devid, date, covid):
-        i = len(self.periods[devid]) - 1
+    def register(self, devid:str, date:datetime, covid:bool):
+        timeline:list = self.timeline[devid]
 
-        l_date, l_status = self.periods[devid][i]
+        prev_date, prev_status = timeline[-1]
 
-        if covid:
-            if l_status == "H":
-                print("If you see this there is a problem...")
-            elif l_status == "U":
-                early_date = date - INC_PERIOD
+        if prev_date > date:
+            raise Exception("Given date cannot be lowev than the latest record!")
 
-                if l_date < early_date:
-                    self.periods[devid][i] = (l_date, "H")
-                    self.periods[devid].append((early_date, "I"))
+        size = len(timeline)
+
+        if covid: # DONT CHANGE THIS IT IS COMPRESSED
+            if prev_status == "U":
+                early_date = date - INV_PERIOD
+                if early_date < prev_date:
+                    timeline[-1] = (prev_date, "I")
                 else:
-                    self.periods[devid][i] = (l_date, "I")
-
-            elif l_status == "I":
-                pass 
+                    if size > 1 and timeline[-3][1] == "H":
+                        timeline.append((early_date, "I"))
+                        timeline.pop(-2)
+                    else:
+                        timeline[-1] = (prev_date, "H")
+                        timeline.append((early_date, "I"))                    
         else:
-            if l_status == "H":
-                pass
-            elif l_status == "U":
-                self.periods[devid][i] = (l_date, "H")
-                self.periods[devid].append((date, "U"))
-            elif l_status == "I":
-                # self.periods[devid][i] = (l_date, "I")
-                self.periods[devid].append((date, "U"))
+            if prev_status == "U":
+                timeline[-1] = (prev_date, "H")
+                timeline.append((date, "U"))
+                if size > 1 and timeline[-3][1] == "H":
+                    timeline.pop(-2)
+            elif prev_status == "I":
+                timeline.append((date, "U"))
+        
+    def lookup(self, devid:str, date:datetime):
+        timeline = self.timeline[devid]
+        first_date, first_status = timeline[-1]
 
-    def lookup(self, devid, date):
-        return # I, H, U
+        if date < first_date: return "H"
 
-    def to_str(self, devid):
-        string = ""
-        for date, status in self.periods[devid]:
-            s = datetime.strftime(date, '%Y-%m-%d')
-            string += f"'{s}:{status}'  "
-        return string
+        for i, (tl_date, tl_status) in enumerate(timeline):
+            if i == 0: continue
 
-dat = TimePeriod()
+            if date < tl_date: return first_status
 
-dat.add_record("dev01", datetime(2020, 8, 1), False)
-dat.add_record("dev01", datetime(2020, 8, 2), False)
-dat.add_record("dev01", datetime(2020, 8, 20), True)
-
-print(dat.to_str("dev01"))
-
+            first_date, first_status = tl_date, tl_status
+        
+        return self.timeline[devid][-1][1] # last elements status
+                
+    def to(self):
+        return {devid:[{    "Date": datetime.strftime(date, TIME_FORMAT), 
+                            "Status": status 
+                        } for date, status in timeline] for devid, timeline in self.timeline.items()}
