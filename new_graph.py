@@ -131,7 +131,7 @@ class TimeLine():
 
         if covid: # DONT CHANGE THIS IT IS COMPRESSED
             if prev_status == "U":
-                early_date = date - INV_PERIOD
+                early_date = date - INC_PERIOD
                 if early_date < prev_date:
                     timeline[-1] = (prev_date, "I")
                 else:
