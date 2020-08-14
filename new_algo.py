@@ -9,7 +9,7 @@ INC_PERIOD = timedelta(days=14)
 DATABASE_CONTACTS = []
 DATABASE_INFO = []
 
-TREE_ROOT = TreeNode('root', 'Patient Zero', datetime(2019, 10, 1), 1)
+TREE_ROOT = TreeNode('root', 'Patient Zero', datetime(2019, 10, 1), 0)
 GRAPH = BordaGraph()
 
 # TRIGGER FUNCTIONS
@@ -38,8 +38,6 @@ def traverse_dfs(node:TreeNode, visited:set, max_size:int): # experimental only!
     else:
         pass
 
-
-
 def generate_trimmed_tree(node:TreeNode, inf_earliest:datetime):
     '''
         Generate the trimmed tree. Data needs to be filtered. the connection data should start from
@@ -48,7 +46,8 @@ def generate_trimmed_tree(node:TreeNode, inf_earliest:datetime):
     if node is None: return
 
     visited = set()
-
+    
+    
     temp = node
     while temp is not None:
         visited.add(temp.devid)
@@ -56,17 +55,18 @@ def generate_trimmed_tree(node:TreeNode, inf_earliest:datetime):
 
     devid_map = {}
 
+
     for contact_devid in GRAPH.graph[node.devid]:
         edge_list = GRAPH.get_edge(contact_devid, node.devid)
 
-        node.date
+
         min_date = None
 
         for earliest, _ in edge_list:
-            if min_date is None and earliest > node.date: 
+            if earliest > node.date and min_date is None:
                 min_date = earliest
-            elif min_date is not None and earliest > node.date and earliest < min_date: 
-                min_date = earliest 
+            elif earliest > node.date and min_date is not None:
+                min_date = min(min_date, earliest)
         
         devid_map[contact_devid] = min_date
                 
@@ -76,7 +76,7 @@ def generate_trimmed_tree(node:TreeNode, inf_earliest:datetime):
 
         if min_date < node.date: continue
 
-        child = TreeNode(contact_devid, None, earliest)
+        child = TreeNode(contact_devid, None, min_date)
         child.attach(node)
     
     for child in node.children:
