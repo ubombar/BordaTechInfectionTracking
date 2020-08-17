@@ -29,20 +29,28 @@ def trigger_alter_tree(devid1, devid2, date, rssi):
     # newly_infected.attach(TREE_ROOT)
 
     TREE_ROOT.rm_all()
+
     # generate_full_tree_with_timeline(TREE_ROOT)
   
     generate_full_tree_with_timeline_14date(TREE_ROOT, date)
 
-# ALGO FUNCTIONS
-def generate_full_tree_with_timeline_14date(node:TreeNode, last_date:datetime):
-    if node is None: return
+    # prune_tree(TREE_ROOT, [child_node.devid for child_node in TREE_ROOT.children] + ["root"])
 
+# ALGO FUNCTIONS
+def get_nodes_in_branch(node:TreeNode):
     visited = set()
 
     temp = node
     while temp is not None:
         visited.add(temp.devid)
         temp = temp.parent
+    
+    return visited
+
+def generate_full_tree_with_timeline_14date(node:TreeNode, last_date:datetime):
+    if node is None: return
+
+    visited = get_nodes_in_branch(node)
     
     for contact_devid in GRAPH.graph[node.devid]:
         if contact_devid in visited: continue
@@ -65,6 +73,8 @@ def generate_full_tree_with_timeline_14date(node:TreeNode, last_date:datetime):
     
             generate_full_tree_with_timeline_14date(child, last_date)
 
+'''
+OLD VERSIONS
 def generate_full_tree_with_timeline(node:TreeNode):
     if node is None: return
 
@@ -94,10 +104,6 @@ def generate_full_tree_with_timeline(node:TreeNode):
         generate_full_tree_with_timeline(child)
 
 def generate_trimmed_tree(node:TreeNode, inf_earliest:datetime):
-    '''
-        Generate the trimmed tree. Data needs to be filtered. the connection data should start from
-        the earliest date that is greater than the earliest active infection?
-    '''
     if node is None: return
 
     visited = set()
@@ -160,3 +166,5 @@ def generate_full_tree(node:TreeNode):
     
     for child in node.children:
         generate_full_tree(child)
+
+'''
