@@ -7,7 +7,7 @@ import json
 
 class BordaGraph(): # undirected graph
     def __init__(self):
-        self.graph = collections.defaultdict(lambda: None) # {name:[names...]}
+        self.graph = collections.defaultdict(lambda: []) # {name:[names...]}
         self.edges = collections.defaultdict(lambda: []) # {(name1, name2):[edges...]}
     
     @staticmethod
@@ -117,6 +117,7 @@ class TreeNode():
 class TimeLine():
     def __init__(self):
         self.timeline = collections.defaultdict(lambda: [(datetime(2019, 1, 1), "U")])
+        self.timeline["root"] = [(datetime(2019, 1, 1), "I")]
 
     def register(self, devid:str, date:datetime, covid:bool):
         timeline:list = self.timeline[devid]

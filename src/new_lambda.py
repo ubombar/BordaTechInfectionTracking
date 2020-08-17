@@ -1,4 +1,3 @@
-#!/home/ubombar/torch/bin/python
 from new_const import *
 from new_algo import *
 import json
@@ -14,7 +13,7 @@ def register_contactv3(first:str, second:str, earliest:datetime, rssi:int):
     
     # We may want to create the graph if there is a connection with root.
     trigger_alter_graph(first, second, earliest, rssi)
-    trigger_alter_tree(first, second, earliest, rssi)
+    # trigger_alter_tree(first, second, earliest, rssi)
 
 def register_info(devid:str, result:bool, date:datetime):
     DATABASE_INFO.append({
@@ -34,18 +33,22 @@ def register_info(devid:str, result:bool, date:datetime):
 
 
 if __name__ == "__main__": # THOSE ALL ARE LAMBDA CALLS
-    register_contactv3('dev01', 'dev04', datetime(2020, 6, 2), 50)
-    register_contactv3('dev02', 'dev04', datetime(2020, 6, 6), 50)
-    register_contactv3('dev03', 'dev04', datetime(2020, 6, 7), 50)
-    register_contactv3('dev05', 'dev04', datetime(2020, 6, 2), 50)
+    register_contactv3('dev01', 'dev02', datetime(2020, 8, 1), 50)
+    register_contactv3('dev02', 'dev03', datetime(2020, 8, 5), 50)
+    register_contactv3('dev02', 'dev03', datetime(2020, 8, 2), 50)
+    register_contactv3('dev03', 'dev04', datetime(2020, 8, 3), 50)
+    register_contactv3('dev03', 'dev04', datetime(2020, 8, 6), 50)
 
-    register_info('dev01', True, datetime(2020, 1, 16))
-    register_info('dev02', True, datetime(2020, 1, 19))
+    register_contactv3('dev04', 'dev05', datetime(2020, 8, 20), 50)
 
-    register_info('dev01', False, datetime(2020, 1, 20))
-    register_info('dev02', False, datetime(2020, 1, 20))
+    register_info('dev01', True, datetime(2020, 8, 10))
+    # register_info('dev02', True, datetime(2020, 8, 4))
 
+    '''
     print(json.dumps({
         "Timeline": TIMELINE.to(),
         "Tree": TREE_ROOT.to()
-    }))
+    })) '''
+
+    # print(json.dumps(TIMELINE.to()))
+    print(json.dumps(TREE_ROOT.to()))
