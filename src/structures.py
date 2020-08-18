@@ -8,7 +8,7 @@ import json
 
 class Graph(): # undirected graph
     def __init__(self, default_date=datetime.now()):
-        self.graph = collections.defaultdict(lambda: set) # {name:[names...]}
+        self.graph = collections.defaultdict(lambda: set()) # {name:[names...]}
         self.edges = collections.defaultdict(lambda: None) # {(name1, name2):edge}
     
     @staticmethod
@@ -30,14 +30,20 @@ class Graph(): # undirected graph
         self.add_vertex(name2)
 
         # if len(self.edges[(Graph.sort(name1, name2))]) == 0:
-        self.graph[name1].append(name2)
-        self.graph[name2].append(name1)
+        self.graph[name1].add(name2)
+        self.graph[name2].add(name1)
 
         self.edges[Graph.sort(name1, name2)] = edge
 
     def add_vertex(self, name):
         if name not in self.graph:
-            self.graph[name] = list()
+            self.graph[name] = set()
+
+    def to(self):
+        return {
+            "graph": [{"userid": userid, "adjacent": list(elements)} for userid, elements in self.graph.items()],
+            "edges": [{"id1": id1, "id2": id2, "edge": {"date": str(edge[0]), "rssi": edge[1]}} for (id1, id2), edge in self.edges.items()]
+        }
 
 class TreeNode():
     DICT = collections.defaultdict(lambda: 0)
@@ -164,7 +170,7 @@ class TimeLine():
         
         return self.timeline[userid][-1][1] # last elements status
                 
-    def to(self, TIME_FORMAT):
+    def to(self):
         return {userid:[{    "Date": str(date), 
                             "Status": status 
                         } for date, status in timeline] for userid, timeline in self.timeline.items()}
