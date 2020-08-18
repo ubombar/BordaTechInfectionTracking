@@ -112,10 +112,10 @@ class TreeNode():
     
     def to(self):
         return {
-            # "puserid": None if self.parent is None else self.parent.userid,
+            "parentid": None if self.parent is None else self.parent.userid,
             "userid": self.userid,
-            # "level": self.level,
-            # "date": str(self.date),
+            "level": self.level,
+            "date": str(self.date),
             "children": [child.to() for child in self.__children]
         }
 
