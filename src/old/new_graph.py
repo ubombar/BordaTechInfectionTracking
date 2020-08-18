@@ -5,6 +5,7 @@ from datetime import datetime
 from new_const import *
 import json
 
+
 class BordaGraph(): # undirected graph
     def __init__(self):
         self.graph = collections.defaultdict(lambda: []) # {name:[names...]}

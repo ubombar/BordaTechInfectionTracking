@@ -1,6 +1,7 @@
 from new_const import *
 from new_algo import *
 import json
+import boto3
 
 # DIRECT LAMBDA FUNCTIONS
 def register_contactv3(first:str, second:str, earliest:datetime, rssi:int): 
@@ -31,24 +32,18 @@ def register_info(devid:str, result:bool, date:datetime):
     trigger_alter_graph('root', devid, min_danger_date, 0)
     trigger_alter_tree('root', devid, min_danger_date, 0)
 
-
 if __name__ == "__main__": # THOSE ALL ARE LAMBDA CALLS
-    register_contactv3('dev01', 'dev02', datetime(2020, 8, 1), 50)
-    register_contactv3('dev02', 'dev03', datetime(2020, 8, 5), 50)
-    register_contactv3('dev02', 'dev03', datetime(2020, 8, 2), 50)
-    register_contactv3('dev03', 'dev04', datetime(2020, 8, 3), 50)
-    register_contactv3('dev03', 'dev04', datetime(2020, 8, 6), 50)
+    register_contactv3('a', 'b', datetime(2020, 8, 5), 50)
+    register_contactv3('a', 'c', datetime(2020, 8, 6), 50)
 
-    register_contactv3('dev04', 'dev05', datetime(2020, 8, 20), 50)
-
-    register_info('dev01', True, datetime(2020, 8, 10))
+    register_info('a', True, datetime(2020, 8, 18))
     # register_info('dev02', True, datetime(2020, 8, 4))
 
-    '''
-    print(json.dumps({
-        "Timeline": TIMELINE.to(),
-        "Tree": TREE_ROOT.to()
-    })) '''
+    
+    print(json.dumps(
+        # "Timeline": TIMELINE.to(),
+        TREE_ROOT.to()
+    ))
 
     # print(json.dumps(TIMELINE.to()))
-    print(json.dumps(TREE_ROOT.to()))
+    # print(json.dumps(TREE_ROOT.to()))

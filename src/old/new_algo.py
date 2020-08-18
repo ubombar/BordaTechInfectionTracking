@@ -50,14 +50,24 @@ def get_nodes_in_branch(node:TreeNode):
 def generate_full_tree_with_timeline_14date(node:TreeNode, last_date:datetime):
     if node is None: return
 
-    visited = get_nodes_in_branch(node)
+    visited = set()
+
+    temp = node
+    while temp is not None:
+        visited.add(temp.devid)
+        temp = temp.parent
     
     for contact_devid in GRAPH.graph[node.devid]:
         if contact_devid in visited: continue
 
         date_list = GRAPH.get_edge(contact_devid, node.devid)
 
-        for contact_date, _ in date_list:
+        minimum_date = date_list[0][0] if len(date_list) != 0 else None
+
+        for date, _ in date_list:
+            if date < minimum_date: minimum_date = date
+
+        for contact_date, _ in [(minimum_date, 0)] if minimum_date is not None else []:
             if contact_date < node.date: continue
 
             infector_status = TIMELINE.lookup(node.devid, contact_date)
