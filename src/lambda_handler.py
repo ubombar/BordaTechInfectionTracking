@@ -12,38 +12,38 @@ ROOT_ID = "root"
 DB_TABLE_TIMELINE = "academy2020-CovidTimeline"
 DB_TABLE_INTERACTIONS = "InteractionTableDuplicatesRemoved"
 
-def lambda_function(event, context):
+def lambda_handler(event, context):
     ''' Generate graph, timeline and tree '''
     database = boto3.resource('dynamodb')
-
+    
     try:
         args = event["queryStringParameters"]
-
         # arguments
         start_date = datetime.strptime(args["start_date"], TIME_FORMAT)
         end_date = datetime.strptime(args["end_date"], TIME_FORMAT)
         allow_infected_pass = bool(args["allow_infected_pass"])
         depth_search = bool(args["depth_search"])
         gen_minimal = bool(args["gen_minimal"])
+        
     except Exception:
-        return json.dumps({
-            "status": 400,
+        return {
+            "statusCode": 400,
             "body": "Arguments are not correctly supplied to this function"
-        })
+        }
         
     # generation
     graph = generate_graph(database, start_date, end_date)
     timeline = generate_timeline(database, graph, start_date, end_date)
     root = generate_tree(graph, timeline, start_date, end_date, allow_infected_pass, depth_search, gen_minimal)
 
-    return json.dumps({
-        "status": 200,
-        "body": {
+    return {
+        "statusCode": 200,
+        "body": json.dumps({
             "tree": root.to(),
             "timeline": timeline.to(),
             "graph": graph.to()
-        }
-    })
+        })
+    }
 
 def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, allow_infected_pass=False, depth_search=False, gen_minimal=False):
     '''

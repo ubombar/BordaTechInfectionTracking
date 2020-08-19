@@ -4,11 +4,9 @@ import math
 from datetime import datetime, timedelta
 import json
 
-
-
 class Graph(): # undirected graph
     def __init__(self, default_date=datetime.now()):
-        self.graph = collections.defaultdict(lambda: set()) # {name:[names...]}
+        self.graph = collections.defaultdict(lambda: set()) # {name:{names...}}
         self.edges = collections.defaultdict(lambda: None) # {(name1, name2):edge}
     
     @staticmethod
