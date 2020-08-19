@@ -4,9 +4,11 @@ import math
 from datetime import datetime, timedelta
 import json
 
+
+
 class Graph(): # undirected graph
     def __init__(self, default_date=datetime.now()):
-        self.graph = collections.defaultdict(lambda: set()) # {name:{names...}}
+        self.graph = collections.defaultdict(lambda: set()) # {name:[names...]}
         self.edges = collections.defaultdict(lambda: None) # {(name1, name2):edge}
     
     @staticmethod
@@ -39,9 +41,26 @@ class Graph(): # undirected graph
 
     def to(self):
         return {
+            "nodes": [
+                {
+                    "id": userid,
+                    "svg": "https://productimages.hepsiburada.net/s/19/375/9854996807730.jpg",
+                    "color": "red",
+                    "size": 500
+                } for userid, elements in self.graph.items()],
+                
+            "links":[
+                {
+                    "source": id1,
+                    "target": id2
+                } for (id1, id2), edge in self.edges.items()]
+        }
+        '''
+        return {
             "graph": [{"userid": userid, "adjacent": list(elements)} for userid, elements in self.graph.items()],
             "edges": [{"id1": id1, "id2": id2, "edge": {"date": str(edge[0]), "rssi": edge[1]}} for (id1, id2), edge in self.edges.items()]
         }
+        '''
 
 class TreeNode():
     DICT = collections.defaultdict(lambda: 0)
@@ -110,10 +129,12 @@ class TreeNode():
     
     def to(self):
         return {
-            "parentid": None if self.parent is None else self.parent.userid,
-            "userid": self.userid,
-            "level": self.level,
-            "date": str(self.date),
+            "name": self.userid,
+            "attributes": {
+                "parentid": None if self.parent is None else self.parent.userid,
+                "level": self.level,
+                "date": str(self.date),
+            },
             "children": [child.to() for child in self.__children]
         }
 

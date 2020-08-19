@@ -184,9 +184,9 @@ def generate_graph(database, start_date, end_date):
 
     return graph
 
-'''
-    # Test
 
+    # Test
+'''
 event = {
     "queryStringParameters": {
         "start_date": "2020-08-01 09:00:00", 
@@ -197,8 +197,8 @@ event = {
         }
     }
 
-response = lambda_function(event, None)
+response = lambda_handler(event, None)
 
-print(response)
+print(response["body"])
 
 '''
