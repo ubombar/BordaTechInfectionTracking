@@ -3,6 +3,8 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from datetime import datetime, timedelta
 from structures import Graph, TimeLine, TreeNode
+import ast
+import collections
 
 # constrains
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -15,15 +17,16 @@ DB_TABLE_INTERACTIONS = "InteractionTableDuplicatesRemoved"
 def lambda_handler(event, context):
     ''' Generate graph, timeline and tree '''
     database = boto3.resource('dynamodb')
+    rds_invoke = boto3.client('lambda')
+    
+    # print(event["queryStringParameters"])
     
     try:
         args = event["queryStringParameters"]
+
         # arguments
         start_date = datetime.strptime(args["start_date"], TIME_FORMAT)
         end_date = datetime.strptime(args["end_date"], TIME_FORMAT)
-        allow_infected_pass = bool(args["allow_infected_pass"])
-        depth_search = bool(args["depth_search"])
-        gen_minimal = bool(args["gen_minimal"])
         
     except Exception:
         return {
@@ -31,21 +34,50 @@ def lambda_handler(event, context):
             "body": "Arguments are not correctly supplied to this function"
         }
         
+    treearg = {}
+    for argument in {"allow_infected_pass", "depth_search", "gen_minimal"}:
+        if argument not in args: continue
+        treearg[argument] = args[argument].lower() == "true"
+        
+        allow_infected_pass = False # bool(args["allow_infected_pass"].lower() == "true")
+        depth_search = False # bool(args["depth_search"].lower() == "true")
+        gen_minimal = True # bool(args["gen_minimal"].lower() == "true")
+        
     # generation
+    useridmap = genrate_useridmap(rds_invoke)
     graph = generate_graph(database, start_date, end_date)
     timeline = generate_timeline(database, graph, start_date, end_date)
-    root = generate_tree(graph, timeline, start_date, end_date, allow_infected_pass, depth_search, gen_minimal)
+    root = generate_tree(graph, timeline, start_date, end_date, useridmap, **treearg)
 
     return {
+        "headers":{
+            "Access-Control-Allow-Headers": 'Content-Type',
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods":"OPTIONS,POST,GET"
+        },
         "statusCode": 200,
         "body": json.dumps({
+            # "useridmap": useridmap
             "tree": root.to(),
+            "level":TreeNode.DICT,
             "timeline": timeline.to(),
             "graph": graph.to()
         })
     }
+    
+def genrate_useridmap(rds_invoke):
+    useridmap = collections.defaultdict(lambda: "unknown name")
+    dbpayload = {"process":"get_raw", "sql":f"SELECT ID, Name, Surname FROM Users"}
+    request = rds_invoke.invoke(FunctionName="academy2020-RDSConnection", InvocationType="RequestResponse", Payload=json.dumps(dbpayload))
+    response = ast.literal_eval(request['Payload'].read().decode())
+    
+    for row in response:
+        userid, name, surname = tuple(row)
+        useridmap[str(userid)] = f"{name} {surname}"
+    
+    return useridmap
 
-def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, allow_infected_pass=False, depth_search=False, gen_minimal=False):
+def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, useridmap, allow_infected_pass=False, depth_search=False, gen_minimal=False):
     '''
         graph:
             Connection graph only contains data from the given timespan. Only the oldest 
@@ -70,21 +102,25 @@ def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, allow_in
         gen_minimal:true
             This reduces the tree size to only connected users.
     '''
-    root = TreeNode(ROOT_ID, start_date)
+    root = TreeNode(ROOT_ID, datetime(2019, 1, 1), "Batman")
     visited = set()
-    queue = [(root, start_date)]
+    queue = [(root, root.date)]
     remove_index = -1 if depth_search else 0
 
     while len(queue) != 0:
         current_node, last_date = queue.pop(remove_index) # act as a queue
-
-        if current_node.userid in visited: continue
-        visited.add(current_node.userid)
+        
+        if not gen_minimal:
+            if current_node.userid in visited: continue
+            visited.add(current_node.userid)
+            
 
         for child_id in graph.graph[current_node.userid]:
             contact_date, _ = graph.get_edge(current_node.userid, child_id)
-
-            if gen_minimal and child_id in visited: continue
+            
+            if gen_minimal:
+                if child_id in visited: continue
+                visited.add(child_id)
 
             # calculate things based on rssi?
 
@@ -111,6 +147,8 @@ def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, allow_in
                     else: continue
 
             if contact_date - last_date > INC_PERIOD: continue
+        
+            '''
 
             branch_passed = set()
 
@@ -120,8 +158,9 @@ def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, allow_in
                 temp = temp.parent
             
             if child_id in branch_passed: continue
-
-            child_node = TreeNode(child_id, contact_date)
+            '''
+            
+            child_node = TreeNode(child_id, contact_date, useridmap[str(child_id)])
             child_node.attach(current_node)
 
             queue.append((child_node, last_date))
@@ -148,7 +187,7 @@ def generate_timeline(database, graph, start_date, end_date):
         timeline.register(uid, date, result, INC_PERIOD)
 
         if result and timeline.lookup(uid, start_date) == "I":
-            graph.set_edge(uid, ROOT_ID, (start_date, 0))
+            graph.set_edge(uid, ROOT_ID, (date, 0))
     
     return timeline
 
@@ -172,21 +211,29 @@ def generate_graph(database, start_date, end_date):
         date = datetime.strptime(item["Date"], TIME_FORMAT)
         rssi = int(item["RSSI"])
 
-        old_tuple = graph.get_edge(id1, id2)
+        # old_tuple = graph.get_edge(id1, id2)
 
+        '''        
         if old_tuple is not None:
             old_date, old_rssi = old_tuple
-
-            date, rssi = min([(old_date, old_rssi), (date, rssi)], key=lambda v: v[0]) 
-            # get the oldest interaction
-
+            graph.set_edge(id1, id2, (old_date, old_rssi))
+        else:
+        '''
+        
         graph.set_edge(id1, id2, (date, rssi))
+            
+
+            # date, rssi = min([(old_date, old_rssi), (date, rssi)], key=lambda v: v[0]) 
+            # get the oldest interaction # NO
+            
+
+        
 
     return graph
 
-
-    # Test
 '''
+    # Test
+
 event = {
     "queryStringParameters": {
         "start_date": "2020-08-01 09:00:00", 
@@ -197,8 +244,8 @@ event = {
         }
     }
 
-response = lambda_handler(event, None)
+response = lambda_function(event, None)
 
-print(response["body"])
+print(response)
 
 '''

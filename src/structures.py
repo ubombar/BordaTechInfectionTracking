@@ -16,7 +16,7 @@ class Graph(): # undirected graph
         return tuple(sorted((name1, name2)))
     
     def get_child(self, name):
-        self.add_vertex(name)
+        # self.add_vertex(name)
         return self.graph[name]
     
     def get_edge(self, name1, name2):
@@ -26,8 +26,8 @@ class Graph(): # undirected graph
         return self.edges[Graph.sort(name1, name2)]
     
     def set_edge(self, name1, name2, edge):
-        self.add_vertex(name1)
-        self.add_vertex(name2)
+        # self.add_vertex(name1)
+        # self.add_vertex(name2)
 
         # if len(self.edges[(Graph.sort(name1, name2))]) == 0:
         self.graph[name1].add(name2)
@@ -65,7 +65,7 @@ class Graph(): # undirected graph
 class TreeNode():
     DICT = collections.defaultdict(lambda: 0)
 
-    def __init__(self, userid, date, level=0, parent=None):
+    def __init__(self, userid, date, name, level=0, parent=None):
         self.parent = None
 
         if parent is not None:
@@ -73,6 +73,7 @@ class TreeNode():
 
         self.userid = userid
         self.date = date
+        self.name = name
         self.__level = level
         self.__children = list()
 
@@ -129,11 +130,12 @@ class TreeNode():
     
     def to(self):
         return {
-            "name": self.userid,
+            "name": self.name,
             "attributes": {
                 "parentid": None if self.parent is None else self.parent.userid,
                 "level": self.level,
                 "date": str(self.date),
+                "userid": self.userid
             },
             "children": [child.to() for child in self.__children]
         }
