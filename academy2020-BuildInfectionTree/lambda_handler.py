@@ -1,6 +1,6 @@
 import json
 import boto3
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime, timedelta
 from structures import Graph, TimeLine, TreeNode
 import ast
@@ -10,6 +10,7 @@ import collections
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 INC_PERIOD = timedelta(days=14)
 ROOT_ID = "root"
+INSERT_THE_JOKE_HERE = "A Wild Bat Soup"
 
 DB_TABLE_TIMELINE = "academy2020-CovidTimeline"
 DB_TABLE_INTERACTIONS = "InteractionTableDuplicatesRemoved"
@@ -34,20 +35,24 @@ def lambda_handler(event, context):
             "body": "Arguments are not correctly supplied to this function"
         }
         
-    treearg = {}
-    for argument in {"allow_infected_pass", "depth_search", "gen_minimal"}:
-        if argument not in args: continue
-        treearg[argument] = args[argument].lower() == "true"
-        
-        allow_infected_pass = False # bool(args["allow_infected_pass"].lower() == "true")
-        depth_search = False # bool(args["depth_search"].lower() == "true")
-        gen_minimal = True # bool(args["gen_minimal"].lower() == "true")
-        
+    treearg = {
+        "allow_infected_pass": False, 
+        "depth_search": False, 
+        "gen_minimal": True, 
+        "simulation_id":"real"
+    }
+
+    for name, value in args.items():
+        if value.lower() in {"true", "false"}:
+            treearg[name] = value.lower() == "true"
+        else:
+            treearg[name] = value
+            
     # generation
     useridmap = genrate_useridmap(rds_invoke)
     graph = generate_graph(database, start_date, end_date)
-    timeline = generate_timeline(database, graph, start_date, end_date)
-    root = generate_tree(graph, timeline, start_date, end_date, useridmap, **treearg)
+    timeline = generate_timeline(database, graph, start_date, end_date, treearg['simulation_id'])
+    root = generate_tree(graph, timeline, start_date, end_date, useridmap, treearg['allow_infected_pass'], treearg['depth_search'], treearg['gen_minimal'])
 
     return {
         "headers":{
@@ -61,7 +66,9 @@ def lambda_handler(event, context):
             "tree": root.to(),
             "level":TreeNode.DICT,
             "timeline": timeline.to(),
-            "graph": graph.to()
+            "graph": graph.to(),
+            # "treearg": treearg,
+            "test": graph.graph["10"]
         })
     }
     
@@ -77,7 +84,7 @@ def genrate_useridmap(rds_invoke):
     
     return useridmap
 
-def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, useridmap, allow_infected_pass=False, depth_search=False, gen_minimal=False):
+def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, useridmap, allow_infected_pass=False, depth_search=False, gen_minimal=True):
     '''
         graph:
             Connection graph only contains data from the given timespan. Only the oldest 
@@ -102,7 +109,7 @@ def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, useridma
         gen_minimal:true
             This reduces the tree size to only connected users.
     '''
-    root = TreeNode(ROOT_ID, datetime(2019, 1, 1), "Batman")
+    root = TreeNode(ROOT_ID, datetime(2019, 1, 1), INSERT_THE_JOKE_HERE)
     visited = set()
     queue = [(root, root.date)]
     remove_index = -1 if depth_search else 0
@@ -168,7 +175,7 @@ def generate_tree(graph:Graph, timeline:TimeLine, start_date, end_date, useridma
     # print(visited)
     return root
 
-def generate_timeline(database, graph, start_date, end_date):
+def generate_timeline(database, graph, start_date, end_date, simulation_id='real'):
     '''
         Generate timeline and also add interactions between currently sick 
         and patient zero.
@@ -177,16 +184,20 @@ def generate_timeline(database, graph, start_date, end_date):
 
     table = database.Table(DB_TABLE_TIMELINE)
 
-    response = table.scan() # get all
+    response = table.scan(FilterExpression=Attr('SimulationId').eq(simulation_id)) # get all
+    
+    print(response["Items"])
 
     for item in response["Items"]:
         uid = str(item["UserId"])
         date = datetime.strptime(item["Date"], TIME_FORMAT)
-        result = bool(item["Covid19"])
+        result = str(item["Covid19"]).lower() == "true"
+        
+        print(uid, date, result)
 
         timeline.register(uid, date, result, INC_PERIOD)
 
-        if result and timeline.lookup(uid, start_date) == "I":
+        if result and timeline.lookup(uid, date) == "I":
             graph.set_edge(uid, ROOT_ID, (date, 0))
     
     return timeline
@@ -226,26 +237,35 @@ def generate_graph(database, start_date, end_date):
             # date, rssi = min([(old_date, old_rssi), (date, rssi)], key=lambda v: v[0]) 
             # get the oldest interaction # NO
             
-
-        
-
     return graph
 
-'''
+
     # Test
 
+'''
 event = {
     "queryStringParameters": {
         "start_date": "2020-08-01 09:00:00", 
         "end_date": "2020-08-05 09:00:00",
+
+        # optional parameters
+
         "allow_infected_pass": "false",
         "depth_search": "false",
-        "gen_minimal": "false"
+        "gen_minimal": "true",
+        "simulation_id": "1"
         }
     }
 
-response = lambda_function(event, None)
+response = lambda_handler(event, None)
 
 print(response)
 
 '''
+
+date1 = datetime.strptime("2020-08-01 09:00:10", TIME_FORMAT)
+date2 = datetime.strptime("2020-08-01 09:00:09", TIME_FORMAT)
+
+print(date1, date2, date1 < date2)
+
+timedelta(hours=3)

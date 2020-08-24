@@ -131,15 +131,17 @@ class TreeNode():
     def to(self):
         return {
             "name": self.name,
+            "children": [child.to() for child in self.__children]
+        }
+
+''' 
             "attributes": {
                 "parentid": None if self.parent is None else self.parent.userid,
                 "level": self.level,
                 "date": str(self.date),
                 "userid": self.userid
-            },
-            "children": [child.to() for child in self.__children]
-        }
-
+            }, 
+            '''
 class TimeLine():
     def __init__(self):
         self.timeline = collections.defaultdict(lambda: [(datetime(2019, 1, 1), "U")])
