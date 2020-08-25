@@ -116,6 +116,7 @@ class Timeline():
                 j += 1
             elif not iresult and jresult: # N P
                 start = max(itime, jtime - INCUB)
+                end_append = True
                 i += 1
                 j += 1
             else: # N N
@@ -124,6 +125,7 @@ class Timeline():
 
         if end_append:
             period.append((start, s))
+
         return period
 
         
@@ -157,28 +159,27 @@ class Timeline():
         return periods
         '''
         
-    
     def earliest(self, date:datetime, INCUB=timedelta(days=14)):
-        indicies = {userid: self.indexof(userid, date) for userid, line in self.lines.items()}
-        statuses = {userid: self.status(userid, date) for userid, line in self.lines.items()}
+        def merge(times):
+            saved = list(times[0])
+            for st, en in sorted([sorted(t) for t in times]):
+                if st <= saved[1]:
+                    saved[1] = max(saved[1], en)
+                else:
+                    yield tuple(saved)
+                    saved[0] = st
+                    saved[1] = en
+            yield tuple(saved)
+        L = [self.periods(userid, date, INCUB) for userid, l in self.lines.items()]
 
+        result = list(merge([j for sub in L for j in sub]))
+        j = len(result) - 1
+        while j >= 0:
+            s, e = result[j]
+            if e < date: j -= 1; continue
+            return s
         
-        
-        
-tl = Timeline()
-
-tl.register("alpha", datetime(2020, 1, 9), True)
-tl.register("alpha", datetime(2020, 1, 17), False)
-
-tl.register("bravo", datetime(2020, 1, 15), True)
-tl.register("bravo", datetime(2020, 1, 17), False)
-
-print(tl.lines['bravo'])
-print(tl.periods("bravo", datetime(2020, 10, 10)))
-
-
-print()
-
+        return date
 
 class Node():
     def __init__(self, id0, name, date):
