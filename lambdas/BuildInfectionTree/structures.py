@@ -11,6 +11,10 @@ class Graph():
         self.__adjacent = collections.defaultdict(set) # {id: {ids...}}
         self.__edges = collections.defaultdict(list) # {(id1, id2):[edge]}
 
+    @property
+    def edges(self):
+        return self.__edges
+
     def adj_nodes(self, id0):
         return self.__adjacent[id0]
     
@@ -48,9 +52,8 @@ class Timeline():
             if date < fdate: return "H"
             elif date < sdate:
                 if not fstatus and sstatus: # N P
-                    return "H" if sdate - date > INCUB else "I"
+                    return "U" if sdate - date > INCUB else "I"
                 return "I" if fstatus else "H"
-        
         return "I" if sstatus else "U"
 
     def register(self, id0, date, result, INCUB=timedelta(days=14)): # O(N)
@@ -90,7 +93,7 @@ class Timeline():
             if result:
                 return [] if s + INCUB < time else [(time - INCUB, s)]# P
             else:
-                return [] if s < time else [(time, s)]# N
+                return [] # if s < time else [(time, s)]# N
 
         i, j = 0, 1
         period = []
@@ -172,6 +175,8 @@ class Timeline():
             yield tuple(saved)
         L = [self.periods(userid, date, INCUB) for userid, l in self.lines.items()]
 
+        if len(L) == 0: return date 
+
         result = list(merge([j for sub in L for j in sub]))
         j = len(result) - 1
         while j >= 0:
@@ -202,3 +207,39 @@ class Node():
         self.parent = None
         self.level = 0
     
+def nodetodict(root):
+    if root is None: return
+    return {
+        "id": root.id0,
+        "name": root.name,
+        "date": str(root.date),
+        "children": [nodetodict(node) for node in root.children if node is not None]
+    }
+
+
+def merge(times):
+    if len(times) == 0: return
+    saved = list(times[0])
+    for st, en in sorted([sorted(t) for t in times]):
+        if st <= saved[1]:
+            saved[1] = max(saved[1], en)
+        else:
+            yield tuple(saved)
+            saved[0] = st
+            saved[1] = en
+    yield tuple(saved)
+
+class PeriodIterator():
+    def __init__(self, list1, list2):
+        self.thelist = sorted({item for t in list1 + list2 for item in t})
+        self.i = 1
+        
+    def __iter__(self):
+        self.i = 1
+        return self
+    
+    def __next__(self):
+        if self.i < len(self.thelist):
+            self.i += 1
+            return self.thelist[self.i - 2], self.thelist[self.i - 1]
+        raise StopIteration
