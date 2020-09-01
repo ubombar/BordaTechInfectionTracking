@@ -215,7 +215,7 @@ def generate_tree(graph, earliest, date, useridmap, timeline):
 
 
 #### DEVELOPER DEBUG ZONE ####
-development_mode = True
+development_mode = False
 
 if __name__ == "__main__" and development_mode:
     event = {
