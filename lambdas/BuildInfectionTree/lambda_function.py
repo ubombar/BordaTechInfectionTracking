@@ -7,6 +7,10 @@ from boto3.dynamodb.conditions import Key, Attr
 import collections
 import ast
 
+'''
+not so easter but egg: https://cdn.discordapp.com/attachments/737267481906905151/748813138954158171/unknown.png
+'''
+
 INSERT_THE_JOKE_HERE = "Bat Soup"
 ROOT_ID = "root"
 
@@ -14,14 +18,14 @@ TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 INC_PERIOD = timedelta(days=14)
 TIMELINE_TABLE = "academy2020-CovidTimeline"
 TIMELINE_TABLE2 = "academy2020-CovidTimeline2"
-INTERACTIONS_TABLE = "InteractionTableDuplicatesRemoved"
+INTERACTIONS_TABLE = "academy2020-InteractionTableLittle" # "InteractionTableDuplicatesRemoved"
 
-REQUIRED_PARAMS = {"date"}
+REQUIRED_PARAMS = {"start_date"}
 OPTIONAL_PARAMS = {
     "timeline": "real"
 }
 
-def lambda_function(event, context):
+def lambda_handler(event, context):
     try:
         http_params = event["queryStringParameters"]
 
@@ -43,20 +47,24 @@ def lambda_function(event, context):
     database = boto3.resource("dynamodb")
     rds_invoke = boto3.client('lambda')
 
-    timeline = generate_timeline(database, http_params["date"], http_params['timeline'])
+    timeline = generate_timeline(database, http_params["start_date"], http_params['timeline'])
     useridmap = genrate_useridmap(rds_invoke)
 
     # get earliest date for filtering from  interaction table
-    earliest_date = timeline.earliest(datetime.strptime(http_params['date'], TIME_FORMAT))
+    earliest_date = timeline.earliest(datetime.strptime(http_params['start_date'], TIME_FORMAT))
     http_params['earliest'] = earliest_date.strftime(TIME_FORMAT)
     timeline.register(ROOT_ID, datetime(2019, 1, 1), True) # mark patient zero as ill
 
     
-    graph = generate_graph(database, http_params['earliest'], http_params['date'], timeline)
+    graph = generate_graph(database, http_params['earliest'], http_params['start_date'], timeline)
 
-    tree = generate_tree(graph, http_params['earliest'], http_params['date'], useridmap, timeline)
+    tree = generate_tree(graph, http_params['earliest'], http_params['start_date'], useridmap, timeline)
 
-    return send(200, json.dumps(structures.nodetodict(tree)))
+    return send(200, json.dumps({
+        "timeline": structures.timelinetodict(timeline, http_params['earliest'], http_params['start_date'], TIME_FORMAT, useridmap),
+        "level": structures.Node.DICT,
+        "tree": structures.nodetodict(tree)
+    }))
 
 ### GENERATE TIMELINE ###
 def generate_timeline(database, date:str, timeline_name:str):
@@ -91,37 +99,25 @@ def generate_graph(database, earliest:datetime, date:datetime, timeline):
         id2 = str(item["Id"])
         rssi = int(item["RSSI"])
         temp_graph.connect(id1, id2, (cdate, rssi))
+        # This way we also remove the duplicates
     
     for (id1, id2), edge_list in temp_graph.edges.items():
         if len(edge_list) == 0: continue
 
-        list_id1 = timeline.periods(id1, date)
-        list_id2 = timeline.periods(id2, date)
+        list_id1 = timeline.thefunction(id1, earliest, date)
+        list_id2 = timeline.thefunction(id2, earliest, date)
 
-        if len(list_id1) == 0: list_id1 = [(earliest, date)]
-        else: list_id1.insert(0, (earliest, list_id1[0][1]))
-
-        if len(list_id2) == 0: list_id2 = [(earliest, date)]
-        else: list_id2.insert(0, (earliest, list_id2[0][1]))
-
-        if list_id1[-1][1] != date: list_id1.append((list_id1[-1][1], date))
-        if list_id2[-1][1] != date: list_id2.append((list_id2[-1][1], date))
-
-        if len({'56', '34'} - {id1, id2}) == 0:
-            print(timeline.status('34', datetime(2020, 8, 26)))
-            for date, _ in sorted(edge_list):
-                print(f"'{str(date)}'")
-
-            print("34", timeline.lines['34'])
-            print("56", timeline.lines['56'])
+        list_id1 = [(x[0], x[1]) for x in list_id1]
+        list_id2 = [(x[0], x[1]) for x in list_id2]
 
         earliest_contact = {} # {(date1, date2): earliest date}
 
         for date1, date2 in structures.PeriodIterator(list_id1, list_id2):
-            if len({'56', '34'} - {id1, id2}) == 0:
-                print(date1, date2)
 
             for edge_date, edge_rssi in edge_list:
+                if edge_date < date1: 
+                    continue
+
                 if (date1, date2) in earliest_contact:
                     earliest_contact[(date1, date2)] = min(earliest_contact[(date1, date2)], (edge_date, edge_rssi))
                 else:
@@ -132,7 +128,6 @@ def generate_graph(database, earliest:datetime, date:datetime, timeline):
 
 
     for userid in timeline.lines.keys():
-        # print(userid, timeline.periods(userid, date))
         for s, _ in timeline.periods(userid, date):
             
             graph.connect(ROOT_ID, userid, (s, 0))
@@ -155,7 +150,7 @@ def generate_tree(graph, earliest, date, useridmap, timeline):
     earliest = datetime.strptime(earliest, TIME_FORMAT)
     date = datetime.strptime(date, TIME_FORMAT)
 
-    root = structures.Node(ROOT_ID, INSERT_THE_JOKE_HERE, datetime(2019, 1, 1))
+    root = structures.Node(ROOT_ID, INSERT_THE_JOKE_HERE, datetime(2019, 1, 1), True)
     visited = set()
     queue = [(root, earliest)]
 
@@ -210,7 +205,7 @@ def generate_tree(graph, earliest, date, useridmap, timeline):
                 
                 if duplicate: continue
                 
-                node = structures.Node(node_id, useridmap[str(node_id)], edge_date)
+                node = structures.Node(node_id, useridmap[str(node_id)], edge_date, infectee_status=="I")
                 node.attach(current_node)
 
                 queue.append((node, last_date))
@@ -225,10 +220,10 @@ development_mode = True
 if __name__ == "__main__" and development_mode:
     event = {
         "queryStringParameters": {
-            "date": "2020-08-27 14:36:00",
-            "timeline": 'real'
+            "start_date": "2020-09-01 14:36:00",
+            "timeline": 'real' # optional
         }
     }
-    response = lambda_function(event, None)
+    response = lambda_handler(event, None)
 
     print(response["body"])

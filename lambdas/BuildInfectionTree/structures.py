@@ -4,7 +4,6 @@ import math
 from datetime import datetime, timedelta
 import json
 import bisect
-import sortedcontainers
 
 class Graph():
     def __init__(self):
@@ -24,6 +23,7 @@ class Graph():
         return self.__edges[(id1, id2)]
 
     def connect(self, id1, id2, edge):
+        # TODO: remove dupes? or create lambda
         self.__adjacent[id1].add(id2)
         self.__adjacent[id2].add(id1)
 
@@ -33,8 +33,9 @@ class Graph():
 
 class Timeline():
     def __init__(self):
-        self.lines = collections.defaultdict(list) # {id:[(date, result)]}
-    
+        self.lines= collections.defaultdict(lambda: [(datetime(2019, 1, 1), False)])
+        #self.lines = collections.defaultdict(list) # {id:[(date, result)]}
+        
     def status(self, id0, date:datetime, INCUB=timedelta(days=14)):
         lines = self.lines[id0]
         size = len(lines)
@@ -52,7 +53,7 @@ class Timeline():
             if date < fdate: return "H"
             elif date < sdate:
                 if not fstatus and sstatus: # N P
-                    return "U" if sdate - date > INCUB else "I"
+                    return "H" if sdate - date > INCUB else "I"
                 return "I" if fstatus else "H"
         return "I" if sstatus else "U"
 
@@ -131,10 +132,7 @@ class Timeline():
 
         return period
 
-        
-
-
-        '''
+'''
         lines = self.lines[id0]
         size = len(lines)
         periods = []
@@ -186,11 +184,104 @@ class Timeline():
         
         return date
 
+    def thefunction(self, id0, start, end, INCUBATION=timedelta(days=14)):
+        ''' by Erdem :) '''
+        tuple_list = self.lines[id0]
+
+        if len(tuple_list) == 0: return [(start, end, "U")]
+
+        periods = [(start, start, "U")]
+        counter = 0
+        for day, covid in tuple_list:
+            if start > day:
+                continue
+            if end <= day:
+                break
+            if covid:
+                if periods[-1][1] >= (day - INCUBATION):
+                    
+                    status = (start, day, "I")
+                    try:
+                        periods[counter] = status
+                    except:
+                        periods.append(status)
+                    counter += 1
+                    #periods.append(status)
+                else:
+                    status = (start, day - INCUBATION, periods[-1][2])
+                    try:
+                        periods[counter] = status
+                    except:
+                        periods.append(status)
+                    counter += 1
+                    #periods.append(status)
+                    status = (day - INCUBATION, day, "I")
+                    try:
+                        periods[counter] = status
+                    except:
+                        periods.append(status)
+                    counter += 1
+                    #periods.append(status)
+                    
+            else:
+                if counter != 0:
+                    if(tuple_list[counter - 1][1]):
+                        status = (start, day, "I")
+                    else:
+                        status = (start, day, "H")
+                else:
+                    status = (start, day, "H")
+                try:
+                        periods[counter] = status
+                except:
+                        periods.append(status)
+                counter += 1
+                #periods.append(status)
+            
+            start = day
+        try:
+            if tuple_list[counter - 1][1]:
+                status = (start, end, "I")
+            else:
+                status = (start, end, "U")
+        except:
+            if tuple_list[counter - 2][1]:
+                status = (start, end, "I")
+            else:
+                status = (start, end, "U")
+        periods.append(status)
+
+        periods2 = []
+
+        counter = 0
+        while counter < len(periods):
+            endControl = False
+            while True:
+                try:
+                    if periods[counter][2] == periods[counter + 1][2]:
+                        endControl = True
+                        end = periods[counter + 1][1]
+                        periods.pop(counter + 1)
+                    else:
+                        break
+                except:
+                    break
+            if endControl:
+                periods2.append((periods[counter][0], end, periods[counter][2]))
+            else:
+                periods2.append(periods[counter])
+            counter += 1
+
+        return periods2
+
 class Node():
-    def __init__(self, id0, name, date):
+    DICT = collections.defaultdict(lambda: float('inf'))
+
+    def __init__(self, id0, name, date, infected=False):
         self.id0 = id0
         self.name = name 
         self.date = date
+        self.infected = infected
 
         self.parent = None
         self.level = 0
@@ -200,6 +291,7 @@ class Node():
         self.parent = parent
         self.parent.children.append(self)
         self.level = parent.level + 1
+        Node.DICT[self.id0] = min(Node.DICT[self.id0], self.level)
     
     def detach(self):
         if self.parent is None: return
@@ -207,16 +299,52 @@ class Node():
         self.parent = None
         self.level = 0
     
-def nodetodict(root):
+def nodetodict(root, debug=False):
     if root is None: return
-    return {
-        "id": root.id0,
-        "name": root.name,
-        "date": str(root.date),
-        "children": [nodetodict(node) for node in root.children if node is not None]
-    }
+    if debug:
+        return {
+            "id": root.id0,
+            "name": root.name,
+            "date": str(root.date),
+            "children": [nodetodict(node, debug) for node in root.children if node is not None]
+        }
+    
+    if root.infected:
+        return {
+                "name": root.name,
+                "nodeSvgShape": {"shapeProps": {"fill": "#d9376e","r": 10}},
+                "attributes": {
+                            "id": root.id0,
+                            "date": str(root.date),
+                            "level": root.level,
+                            "parent": None if root.parent is None else root.parent.id0,
+                        },
+                "children": [nodetodict(node, debug) for node in root.children if node is not None]
+            }
+    else:
+        return {
+                "name": root.name,
+                "attributes": {
+                            "id": root.id0,
+                            "date": str(root.date),
+                            "level": root.level,
+                            "parent": None if root.parent is None else root.parent.id0,
+                        },
+                "children": [nodetodict(node, debug) for node in root.children if node is not None]
+            }
 
-
+def timelinetodict(timeline:Timeline, start, end, TIME_FORMAT, useridmap):
+    start = datetime.strptime(start, TIME_FORMAT)
+    end = datetime.strptime(end, TIME_FORMAT)
+    
+    mapp = {}
+    
+    for userid, username in useridmap.items():
+        dates = [{"Date": str(date), "Status": status} for date, _, status in timeline.thefunction(userid, start, end)]
+        mapp[userid] = {"name": username, "dates": dates}
+    
+    return mapp
+    
 def merge(times):
     if len(times) == 0: return
     saved = list(times[0])
@@ -228,6 +356,7 @@ def merge(times):
             saved[0] = st
             saved[1] = en
     yield tuple(saved)
+
 
 class PeriodIterator():
     def __init__(self, list1, list2):

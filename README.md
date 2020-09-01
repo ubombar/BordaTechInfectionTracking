@@ -1,2 +1,2 @@
 # BordaTechInfectionTracking
-This will be added later
+Used for generating the infection tree and timeline datastructures. Deployed to AWS.

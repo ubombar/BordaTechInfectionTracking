@@ -1,7 +1,3 @@
 .vscode/settings.json
 .vscode/tasks.json
-src/__pycache__/new_algo.cpython-38.pyc
-src/__pycache__/new_const.cpython-38.pyc
-src/__pycache__/new_graph.cpython-38.pyc
-src/old/local_test/__pycache__/new_graph.cpython-38.pyc
-src/__pycache__/structures.cpython-38.pyc
+lambdas/__old/
