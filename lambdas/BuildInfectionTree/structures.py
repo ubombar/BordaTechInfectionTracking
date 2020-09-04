@@ -131,34 +131,6 @@ class Timeline():
             period.append((start, s))
 
         return period
-
-'''
-        lines = self.lines[id0]
-        size = len(lines)
-        periods = []
-
-        if size == 0: return []
-        if size == 1:
-            fdate, fstatus = lines[0]
-            if fstatus and fdate - INCUB < date:
-                return [(fdate - INCUB, date)]
-            else:
-                return []
-        
-        for i in range(size - 1):
-            fdate, fstatus = lines[i]
-            sdate, sstatus = lines[i + 1]
-
-            if date < fdate: return periods
-
-            if not fstatus and sstatus: # N P
-                periods.append((max(fdate, sdate - INCUB), sdate))
-            elif fstatus and not sstatus: # P N
-                periods.append((fdate - INCUB, sdate)) # easy
-
-        
-        return periods
-        '''
         
     def earliest(self, date:datetime, INCUB=timedelta(days=14)):
         def merge(times):
@@ -372,3 +344,34 @@ class PeriodIterator():
             self.i += 1
             return self.thelist[self.i - 2], self.thelist[self.i - 1]
         raise StopIteration
+
+
+
+
+'''
+        lines = self.lines[id0]
+        size = len(lines)
+        periods = []
+
+        if size == 0: return []
+        if size == 1:
+            fdate, fstatus = lines[0]
+            if fstatus and fdate - INCUB < date:
+                return [(fdate - INCUB, date)]
+            else:
+                return []
+        
+        for i in range(size - 1):
+            fdate, fstatus = lines[i]
+            sdate, sstatus = lines[i + 1]
+
+            if date < fdate: return periods
+
+            if not fstatus and sstatus: # N P
+                periods.append((max(fdate, sdate - INCUB), sdate))
+            elif fstatus and not sstatus: # P N
+                periods.append((fdate - INCUB, sdate)) # easy
+
+        
+        return periods
+'''
